@@ -36,7 +36,7 @@ export default function PerfilPage() {
 
   return (
     <div className="pb-24">
-      <div className={`h-28 bg-gradient-to-r ${current.banner} relative`}>
+      <div className={`mx-4 mt-4 h-24 rounded-2xl bg-gradient-to-r ${current.banner} relative`}>
         {editing && (
           <div className="absolute bottom-2 right-2 flex gap-1.5">
             {BANNERS.map((b, i) => (
