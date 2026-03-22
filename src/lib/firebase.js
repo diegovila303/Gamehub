@@ -4,7 +4,7 @@ import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: "AIzaSyAjb3lebYcLyhkmUU0UZySO-Xy-NuFQwyE",
-  authDomain: "gamehub-theta-red.vercel.app",
+  authDomain: "gamehub-b14c7.firebaseapp.com",
   projectId: "gamehub-b14c7",
   storageBucket: "gamehub-b14c7.firebasestorage.app",
   messagingSenderId: "612991758867",
