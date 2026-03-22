@@ -59,5 +59,6 @@ export default {
       },
     },
   },
+  safelist: ['from-violet-600','to-indigo-600','from-pink-600','to-rose-600','from-emerald-600','to-teal-600','from-amber-500','to-orange-600','from-blue-600','to-cyan-600','from-purple-600','to-pink-600','from-slate-700','to-slate-900','from-red-600','bg-gradient-to-r'],
   plugins: [],
 }
