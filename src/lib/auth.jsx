@@ -9,34 +9,35 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined)
 
   useEffect(() => {
-    getRedirectResult(auth).then(async (result) => {
-      if (result?.user) {
-        const ref = doc(db, "users", result.user.uid)
-        const snap = await getDoc(ref)
-        if (!snap.exists()) {
-          await setDoc(ref, {
-            uid: result.user.uid,
-            name: result.user.displayName,
-            email: result.user.email,
-            avatar: result.user.photoURL,
-            status: "offline",
-            createdAt: new Date().toISOString()
-          })
+    let unsub
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          const ref = doc(db, "users", result.user.uid)
+          const snap = await getDoc(ref)
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              uid: result.user.uid,
+              name: result.user.displayName,
+              email: result.user.email,
+              avatar: result.user.photoURL,
+              status: "offline",
+              createdAt: new Date().toISOString()
+            })
+          }
         }
-      }
-    }).catch(console.error)
-
-    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser ?? null)
-    })
-    return unsub
+      })
+      .catch(console.error)
+      .finally(() => {
+        unsub = onAuthStateChanged(auth, (firebaseUser) => {
+          setUser(firebaseUser ?? null)
+        })
+      })
+    return () => unsub?.()
   }, [])
 
-  const loginWithGoogle = () => signInWithRedirect(auth, googleProvider)
-  const logout = () => signOut(auth)
-
   return (
-    <AuthContext.Provider value={{ user, loading: user === undefined, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading: user === undefined, loginWithGoogle: () => signInWithRedirect(auth, googleProvider), logout: () => signOut(auth) }}>
       {children}
     </AuthContext.Provider>
   )
