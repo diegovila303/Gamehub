@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { db } from './firebase'
 import { useAuth } from './auth'
+import { createNotification } from './notifications'
 import {
   collection, query, where, onSnapshot,
   addDoc, updateDoc, deleteDoc, doc, getDocs, getDoc
@@ -15,10 +16,8 @@ export function useFriends() {
   useEffect(() => {
     if (!user) return
 
-    // Solicitudes entrantes pendientes
     const q1 = query(collection(db, 'friendRequests'),
-      where('to', '==', user.uid),
-      where('status', '==', 'pending'))
+      where('to', '==', user.uid), where('status', '==', 'pending'))
     const u1 = onSnapshot(q1, async snap => {
       const requests = await Promise.all(snap.docs.map(async d => {
         const data = d.data()
@@ -28,30 +27,19 @@ export function useFriends() {
       setIncoming(requests)
     })
 
-    // Solicitudes salientes pendientes
     const q2 = query(collection(db, 'friendRequests'),
-      where('from', '==', user.uid),
-      where('status', '==', 'pending'))
+      where('from', '==', user.uid), where('status', '==', 'pending'))
     const u2 = onSnapshot(q2, snap => {
       setOutgoing(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     })
 
-    // Amigos aceptados
-    const q3 = query(collection(db, 'friendRequests'),
-      where('from', '==', user.uid),
-      where('status', '==', 'accepted'))
-    const q4 = query(collection(db, 'friendRequests'),
-      where('to', '==', user.uid),
-      where('status', '==', 'accepted'))
-
     let fromFriends = []
     let toFriends = []
 
-    const mergeFriends = () => {
-      const all = [...fromFriends, ...toFriends]
-      setFriends(all)
-    }
+    const mergeFriends = () => setFriends([...fromFriends, ...toFriends])
 
+    const q3 = query(collection(db, 'friendRequests'),
+      where('from', '==', user.uid), where('status', '==', 'accepted'))
     const u3 = onSnapshot(q3, async snap => {
       const list = await Promise.all(snap.docs.map(async d => {
         const data = d.data()
@@ -62,6 +50,8 @@ export function useFriends() {
       mergeFriends()
     })
 
+    const q4 = query(collection(db, 'friendRequests'),
+      where('to', '==', user.uid), where('status', '==', 'accepted'))
     const u4 = onSnapshot(q4, async snap => {
       const list = await Promise.all(snap.docs.map(async d => {
         const data = d.data()
@@ -77,7 +67,6 @@ export function useFriends() {
 
   const sendRequest = async (toUid) => {
     if (!user) return
-    // Comprobar que no existe ya
     const existing = query(collection(db, 'friendRequests'),
       where('from', '==', user.uid), where('to', '==', toUid))
     const snap = await getDocs(existing)
@@ -94,11 +83,25 @@ export function useFriends() {
       status: 'pending',
       createdAt: new Date().toISOString()
     })
+
+    // Notificar al destinatario
+    await createNotification(toUid, 'friend_request', {
+      fromUid: user.uid,
+      message: `${user.displayName} te envió una solicitud de amistad`
+    })
+
     return { success: true }
   }
 
-  const acceptRequest = async (requestId) => {
+  const acceptRequest = async (requestId, fromUid) => {
     await updateDoc(doc(db, 'friendRequests', requestId), { status: 'accepted' })
+    // Notificar al que envió la solicitud
+    if (fromUid) {
+      await createNotification(fromUid, 'friend_request', {
+        fromUid: user.uid,
+        message: `${user.displayName} aceptó tu solicitud de amistad`
+      })
+    }
   }
 
   const rejectRequest = async (requestId) => {

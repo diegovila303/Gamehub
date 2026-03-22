@@ -219,7 +219,7 @@ export default function AmigosPage() {
                       <p className="text-xs text-muted-foreground">{req.fromUser?.username}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => acceptRequest(req.id)} className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all">
+                      <button onClick={() => acceptRequest(req.id, req.from)} className="w-8 h-8 rounded-xl bg-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/25 transition-all">
                         <Check className="w-4 h-4" />
                       </button>
                       <button onClick={() => rejectRequest(req.id)} className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive hover:bg-destructive/20 transition-all">

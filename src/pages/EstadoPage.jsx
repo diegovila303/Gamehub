@@ -5,11 +5,14 @@ import GamePicker from "@/components/status/GamePicker";
 import TimePicker from "@/components/status/TimePicker";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { useFriends } from "@/lib/friends";
+import { createNotification } from "@/lib/notifications";
+import { doc, updateDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { getGame } from "@/lib/games";
 
 export default function EstadoPage() {
   const { user } = useAuth();
+  const { friends } = useFriends();
   const [activeStatus, setActiveStatus] = useState("offline");
   const [selectedGame, setSelectedGame] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -17,7 +20,6 @@ export default function EstadoPage() {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  // Cargar estado guardado al montar
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then((snap) => {
@@ -25,16 +27,32 @@ export default function EstadoPage() {
         const data = snap.data();
         setActiveStatus(data.status || "offline");
         if (data.current_game) {
-          // Buscar el objeto juego por nombre
-          const game = Object.values(getGame ? {} : {}).find(g => g.name === data.current_game)
-            || { name: data.current_game, icon: "🎮", id: data.current_game };
-          setSelectedGame(game);
+          setSelectedGame({ name: data.current_game, icon: "🎮", id: data.current_game });
         }
         if (data.scheduled_time) setSelectedTime(data.scheduled_time);
       }
       setLoaded(true);
     });
   }, [user]);
+
+  const notifyFriends = async (status, gameName) => {
+    if (!friends.length) return;
+    const promises = friends.map(friend => {
+      if (status === "playing") {
+        return createNotification(friend.uid, "friend_playing", {
+          fromUid: user.uid,
+          message: `${user.displayName} está jugando a ${gameName || "algo"}`
+        });
+      } else if (status === "scheduled") {
+        return createNotification(friend.uid, "friend_scheduled", {
+          fromUid: user.uid,
+          message: `${user.displayName} va a jugar a ${gameName || "algo"}`
+        });
+      }
+      return Promise.resolve();
+    });
+    await Promise.all(promises);
+  };
 
   const saveToFirestore = async (status, game, time) => {
     if (!user) return;
@@ -58,12 +76,14 @@ export default function EstadoPage() {
     setActiveStatus("playing");
     setMenuOpen(null);
     await saveToFirestore("playing", game, null);
+    await notifyFriends("playing", game.name);
   };
 
   const handleScheduledConfirm = async () => {
     setActiveStatus("scheduled");
     setMenuOpen(null);
     await saveToFirestore("scheduled", selectedGame, selectedTime);
+    await notifyFriends("scheduled", selectedGame?.name);
   };
 
   const handleOptionClick = (status) => {
@@ -118,18 +138,13 @@ export default function EstadoPage() {
         >
           {menuOpen === "scheduled" && (
             <div onClick={e => e.stopPropagation()}>
-              <GamePicker
-                selected={selectedGame?.id}
-                onSelect={(game) => setSelectedGame(game)}
-              />
+              <GamePicker selected={selectedGame?.id} onSelect={(game) => setSelectedGame(game)} />
               <div className="mt-3">
                 <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">¿CUÁNDO?</p>
                 <TimePicker selected={selectedTime} onSelect={setSelectedTime} />
               </div>
-              <button
-                onClick={handleScheduledConfirm}
-                className="mt-3 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all"
-              >
+              <button onClick={handleScheduledConfirm}
+                className="mt-3 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all">
                 OK
               </button>
             </div>

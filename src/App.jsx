@@ -4,8 +4,8 @@ import AppLayout from './components/layouts/AppLayout'
 import EstadoPage from './pages/EstadoPage'
 import AmigosPage from './pages/AmigosPage'
 import ChatPage from './pages/ChatPage'
-import FeedPage from './pages/FeedPage'
 import PerfilPage from './pages/PerfilPage'
+import FeedPage from './pages/FeedPage'
 import LoginPage from './pages/LoginPage'
 
 function AppRoutes() {
@@ -28,8 +28,9 @@ function AppRoutes() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<EstadoPage />} />
+        <Route path="/feed" element={<FeedPage />} />
         <Route path="/friends" element={<AmigosPage />} />
-        <Route path="/feed" element={<FeedPage />} />`n        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat" element={<ChatPage />} />
         <Route path="/profile" element={<PerfilPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
