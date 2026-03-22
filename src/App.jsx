@@ -29,7 +29,7 @@ function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<EstadoPage />} />
         <Route path="/friends" element={<AmigosPage />} />
-        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/feed" element={<FeedPage />} />`n        <Route path="/chat" element={<ChatPage />} />
         <Route path="/profile" element={<PerfilPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
