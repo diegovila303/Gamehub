@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import AppLayout from './components/layouts/AppLayout'
 import EstadoPage from './pages/EstadoPage'
@@ -38,8 +38,8 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
+    <BrowserRouter><AuthProvider>
       <AppRoutes />
-    </AuthProvider>
+    </AuthProvider></BrowserRouter>
   )
 }
