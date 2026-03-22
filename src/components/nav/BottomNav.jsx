@@ -1,17 +1,17 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Gamepad2, Users, MessageCircle, User } from "lucide-react";
+import { Gamepad2, Zap, Users, MessageCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { path: "/", icon: Gamepad2, label: "Estado" },
-  { path: "/feed", icon: Zap, label: "Feed" },`n  { path: "/friends", icon: Users, label: "Amigos" },
+  { path: "/feed", icon: Zap, label: "Feed" },
+  { path: "/friends", icon: Users, label: "Amigos" },
   { path: "/chat", icon: MessageCircle, label: "Chat" },
   { path: "/profile", icon: User, label: "Perfil" },
 ];
 
 export default function BottomNav() {
   const location = useLocation();
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/90 backdrop-blur-xl safe-area-pb">
       <div className="flex items-center justify-around max-w-lg mx-auto h-16">
