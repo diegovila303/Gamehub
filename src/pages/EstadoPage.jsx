@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Gamepad2, Clock, WifiOff, Sparkles } from "lucide-react";
 import StatusOption from "@/components/status/StatusOption";
 import GamePicker from "@/components/status/GamePicker";
 import TimePicker from "@/components/status/TimePicker";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { getGame } from "@/lib/games";
 
 export default function EstadoPage() {
   const { user } = useAuth();
@@ -14,6 +15,26 @@ export default function EstadoPage() {
   const [selectedTime, setSelectedTime] = useState(null);
   const [menuOpen, setMenuOpen] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Cargar estado guardado al montar
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, "users", user.uid)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setActiveStatus(data.status || "offline");
+        if (data.current_game) {
+          // Buscar el objeto juego por nombre
+          const game = Object.values(getGame ? {} : {}).find(g => g.name === data.current_game)
+            || { name: data.current_game, icon: "🎮", id: data.current_game };
+          setSelectedGame(game);
+        }
+        if (data.scheduled_time) setSelectedTime(data.scheduled_time);
+      }
+      setLoaded(true);
+    });
+  }, [user]);
 
   const saveToFirestore = async (status, game, time) => {
     if (!user) return;
@@ -56,6 +77,12 @@ export default function EstadoPage() {
     }
     setMenuOpen(prev => prev === status ? null : status);
   };
+
+  if (!loaded) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
 
   return (
     <div className="p-4">
