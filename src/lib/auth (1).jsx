@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { auth, googleProvider, db } from './firebase'
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
+import { signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 
 const AuthContext = createContext(null)
@@ -10,24 +10,31 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Guardar/actualizar perfil en Firestore
-        const ref = doc(db, 'users', firebaseUser.uid)
+    // Manejar resultado de redirección
+    getRedirectResult(auth).then(async (result) => {
+      if (result?.user) {
+        const ref = doc(db, 'users', result.user.uid)
         const snap = await getDoc(ref)
         if (!snap.exists()) {
           await setDoc(ref, {
-            uid: firebaseUser.uid,
-            name: firebaseUser.displayName,
-            email: firebaseUser.email,
-            avatar: firebaseUser.photoURL,
+            uid: result.user.uid,
+            name: result.user.displayName,
+            email: result.user.email,
+            avatar: result.user.photoURL,
             status: 'offline',
             current_game: null,
             scheduled_time: null,
             createdAt: new Date().toISOString()
           })
         }
-        setUser({ ...firebaseUser, ...snap.data() })
+      }
+    }).catch(console.error)
+
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const ref = doc(db, 'users', firebaseUser.uid)
+        const snap = await getDoc(ref)
+        setUser({ ...firebaseUser, ...(snap.exists() ? snap.data() : {}) })
       } else {
         setUser(null)
       }
@@ -37,7 +44,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const loginWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider)
+    await signInWithRedirect(auth, googleProvider)
   }
 
   const logout = async () => {
