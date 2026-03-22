@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Gamepad2, Users, MessageCircle, User } from "lucide-react";
+import { Zap, Gamepad2, Users, MessageCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
