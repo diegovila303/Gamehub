@@ -68,10 +68,10 @@ export default function FeedPage() {
     if (!me) return null;
     const Icon = statusIcons[me.status] || WifiOff;
     return (
-      <div className={`fixed bottom-20 right-4 z-40 flex items-center gap-2.5 px-3 py-2.5 rounded-2xl border shadow-lg backdrop-blur-sm ${statusBg[me.status] || statusBg.offline}`}
-        style={{ maxWidth: '200px' }}>
+      <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-lg backdrop-blur-sm w-72 ${statusBg[me.status] || statusBg.offline}`}
+        >
         <div className="relative shrink-0">
-          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground overflow-hidden">
             {me.avatar ? <img src={me.avatar} className="w-full h-full object-cover" /> : (me.name || "?")[0].toUpperCase()}
           </div>
           <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${statusColors[me.status] || statusColors.offline}`} />
