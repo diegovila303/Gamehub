@@ -10,30 +10,29 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getRedirectResult(auth).then(async (result) => {
-      if (result?.user) {
-        const ref = doc(db, 'users', result.user.uid)
-        const snap = await getDoc(ref)
-        if (!snap.exists()) {
-          await setDoc(ref, {
-            uid: result.user.uid,
-            name: result.user.displayName,
-            email: result.user.email,
-            avatar: result.user.photoURL,
-            status: 'offline',
-            current_game: null,
-            scheduled_time: null,
-            createdAt: new Date().toISOString()
-          })
-        }
-      }
-    }).catch(console.error)
-
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const ref = doc(db, 'users', firebaseUser.uid)
-        const snap = await getDoc(ref)
-        setUser({ ...firebaseUser, ...(snap.exists() ? snap.data() : {}) })
+        try {
+          const ref = doc(db, 'users', firebaseUser.uid)
+          const snap = await getDoc(ref)
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName,
+              email: firebaseUser.email,
+              avatar: firebaseUser.photoURL,
+              status: 'offline',
+              current_game: null,
+              scheduled_time: null,
+              createdAt: new Date().toISOString()
+            })
+          }
+          const updatedSnap = await getDoc(ref)
+          setUser({ ...firebaseUser, ...updatedSnap.data() })
+        } catch(e) {
+          console.error(e)
+          setUser(firebaseUser)
+        }
       } else {
         setUser(null)
       }
