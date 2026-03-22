@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Gamepad2, Clock, WifiOff, Sparkles } from "lucide-react";
 import StatusOption from "@/components/status/StatusOption";
 import GamePicker from "@/components/status/GamePicker";
@@ -12,51 +12,49 @@ export default function EstadoPage() {
   const [activeStatus, setActiveStatus] = useState("offline");
   const [selectedGame, setSelectedGame] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const saveToFirestore = async (status, game, time) => {
     if (!user) return;
     setSaving(true);
     try {
-      const ref = doc(db, "users", user.uid);
-      await updateDoc(ref, {
+      await updateDoc(doc(db, "users", user.uid), {
         status,
         current_game: game?.name || null,
         scheduled_time: time || null,
         lastSeen: new Date().toISOString(),
       });
     } catch (e) {
-      console.error("Error guardando estado:", e);
+      console.error(e);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleStatusChange = async (status) => {
-    let newStatus = activeStatus === status ? "offline" : status;
-    let newGame = selectedGame;
-    let newTime = selectedTime;
-
-    if (newStatus === "offline") {
-      newGame = null;
-      newTime = null;
-    }
-    if (newStatus !== "scheduled") newTime = null;
-
-    setActiveStatus(newStatus);
-    setSelectedGame(newGame);
-    setSelectedTime(newTime);
-    await saveToFirestore(newStatus, newGame, newTime);
-  };
-
   const handleGameSelect = async (game) => {
     setSelectedGame(game);
-    await saveToFirestore(activeStatus, game, selectedTime);
+    setActiveStatus("playing");
+    setMenuOpen(null);
+    await saveToFirestore("playing", game, null);
   };
 
-  const handleTimeSelect = async (time) => {
-    setSelectedTime(time);
-    await saveToFirestore(activeStatus, selectedGame, time);
+  const handleScheduledConfirm = async () => {
+    setActiveStatus("scheduled");
+    setMenuOpen(null);
+    await saveToFirestore("scheduled", selectedGame, selectedTime);
+  };
+
+  const handleOptionClick = (status) => {
+    if (status === "offline") {
+      setActiveStatus("offline");
+      setSelectedGame(null);
+      setSelectedTime(null);
+      setMenuOpen(null);
+      saveToFirestore("offline", null, null);
+      return;
+    }
+    setMenuOpen(prev => prev === status ? null : status);
   };
 
   return (
@@ -74,31 +72,40 @@ export default function EstadoPage() {
       <div className="flex flex-col gap-3">
         <StatusOption
           icon={Gamepad2}
-          title={selectedGame && activeStatus === "playing" ? `Jugando a ${selectedGame.name}` : "Jugando a..."}
+          title={activeStatus === "playing" && selectedGame ? `Jugando a ${selectedGame.name}` : "Jugando a..."}
           subtitle="Dile a tus amigos qué estás jugando"
           active={activeStatus === "playing"}
-          onClick={() => handleStatusChange("playing")}
+          onClick={() => handleOptionClick("playing")}
         >
-          {activeStatus === "playing" && (
+          {menuOpen === "playing" && (
             <GamePicker selected={selectedGame?.id} onSelect={handleGameSelect} />
           )}
         </StatusOption>
 
         <StatusOption
           icon={Clock}
-          title="Voy a jugar en..."
+          title={activeStatus === "scheduled" && selectedGame ? `${selectedGame.name}${selectedTime ? " · en " + selectedTime + " min" : ""}` : "Voy a jugar en..."}
           subtitle="Programa cuándo vas a jugar"
           active={activeStatus === "scheduled"}
-          onClick={() => handleStatusChange("scheduled")}
+          onClick={() => handleOptionClick("scheduled")}
         >
-          {activeStatus === "scheduled" && (
-            <>
-              <GamePicker selected={selectedGame?.id} onSelect={handleGameSelect} />
+          {menuOpen === "scheduled" && (
+            <div onClick={e => e.stopPropagation()}>
+              <GamePicker
+                selected={selectedGame?.id}
+                onSelect={(game) => setSelectedGame(game)}
+              />
               <div className="mt-3">
                 <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">¿CUÁNDO?</p>
-                <TimePicker selected={selectedTime} onSelect={handleTimeSelect} />
+                <TimePicker selected={selectedTime} onSelect={setSelectedTime} />
               </div>
-            </>
+              <button
+                onClick={handleScheduledConfirm}
+                className="mt-3 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all"
+              >
+                OK
+              </button>
+            </div>
           )}
         </StatusOption>
 
@@ -107,13 +114,14 @@ export default function EstadoPage() {
           title="Offline"
           subtitle="No disponible ahora"
           active={activeStatus === "offline"}
-          onClick={() => handleStatusChange("offline")}
+          onClick={() => handleOptionClick("offline")}
         />
 
-        {activeStatus !== "offline" && selectedGame && (
+        {activeStatus !== "offline" && selectedGame && menuOpen === null && (
           <div className="mt-2 p-3 rounded-xl bg-primary/10 border border-primary/20 text-center">
             <p className="text-sm text-primary font-medium">
-              {activeStatus === "playing" ? "🎮" : "⏰"} Estado guardado — {selectedGame.icon} {selectedGame.name}
+              {activeStatus === "playing" ? "🎮" : "⏰"} {selectedGame.icon} {selectedGame.name}
+              {activeStatus === "scheduled" && selectedTime ? ` · en ${selectedTime} min` : ""}
             </p>
           </div>
         )}
