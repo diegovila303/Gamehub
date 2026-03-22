@@ -4,6 +4,7 @@ import AppLayout from './components/layouts/AppLayout'
 import EstadoPage from './pages/EstadoPage'
 import AmigosPage from './pages/AmigosPage'
 import ChatPage from './pages/ChatPage'
+import FeedPage from './pages/FeedPage'
 import PerfilPage from './pages/PerfilPage'
 import LoginPage from './pages/LoginPage'
 
