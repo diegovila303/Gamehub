@@ -1,9 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { auth, googleProvider, db } from './firebase'
-import { signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from 'firebase/auth'
+import { signInWithRedirect, signInWithPopup, signOut, onAuthStateChanged, getRedirectResult } from 'firebase/auth'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 
 const AuthContext = createContext(null)
+
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const isPWA = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
 
 async function ensureUserDoc(firebaseUser) {
   const ref = doc(db, 'users', firebaseUser.uid)
@@ -34,37 +37,46 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Primero procesar el resultado del redirect
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          const userData = await ensureUserDoc(result.user)
+    // Manejar resultado de redirect (solo en navegador normal)
+    if (!isPWA()) {
+      getRedirectResult(auth).catch(console.error)
+    }
+
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userData = await ensureUserDoc(firebaseUser)
           setUser(userData)
-          setLoading(false)
+        } catch (e) {
+          console.error(e)
+          setUser(firebaseUser)
         }
-      })
-      .catch(console.error)
-      .finally(() => {
-        // Luego escuchar cambios de estado
-        const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-          if (firebaseUser) {
-            try {
-              const userData = await ensureUserDoc(firebaseUser)
-              setUser(userData)
-            } catch (e) {
-              console.error(e)
-              setUser(firebaseUser)
-            }
-          } else {
-            setUser(null)
-          }
-          setLoading(false)
-        })
-        return unsub
-      })
+      } else {
+        setUser(null)
+      }
+      setLoading(false)
+    })
+    return unsub
   }, [])
 
-  const loginWithGoogle = () => signInWithRedirect(auth, googleProvider)
+  const loginWithGoogle = async () => {
+    try {
+      // En PWA o móvil usar popup, en escritorio usar redirect
+      if (isPWA() || isMobile()) {
+        await signInWithPopup(auth, googleProvider)
+      } else {
+        await signInWithRedirect(auth, googleProvider)
+      }
+    } catch (e) {
+      // Si popup falla, intentar redirect
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user') {
+        await signInWithRedirect(auth, googleProvider)
+      } else {
+        console.error(e)
+      }
+    }
+  }
+
   const logout = () => signOut(auth)
 
   return (
