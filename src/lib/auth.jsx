@@ -1,56 +1,42 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { auth, googleProvider, db } from './firebase'
-import { signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { createContext, useContext, useEffect, useState } from "react"
+import { auth, googleProvider, db } from "./firebase"
+import { signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from "firebase/auth"
+import { doc, setDoc, getDoc } from "firebase/firestore"
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(undefined)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const ref = doc(db, 'users', firebaseUser.uid)
-          const snap = await getDoc(ref)
-          if (!snap.exists()) {
-            await setDoc(ref, {
-              uid: firebaseUser.uid,
-              name: firebaseUser.displayName,
-              email: firebaseUser.email,
-              avatar: firebaseUser.photoURL,
-              status: 'offline',
-              current_game: null,
-              scheduled_time: null,
-              createdAt: new Date().toISOString()
-            })
-          }
-          const updatedSnap = await getDoc(ref)
-          setUser({ ...firebaseUser, ...updatedSnap.data() })
-        } catch(e) {
-          console.error(e)
-          setUser(firebaseUser)
+    getRedirectResult(auth).then(async (result) => {
+      if (result?.user) {
+        const ref = doc(db, "users", result.user.uid)
+        const snap = await getDoc(ref)
+        if (!snap.exists()) {
+          await setDoc(ref, {
+            uid: result.user.uid,
+            name: result.user.displayName,
+            email: result.user.email,
+            avatar: result.user.photoURL,
+            status: "offline",
+            createdAt: new Date().toISOString()
+          })
         }
-      } else {
-        setUser(null)
       }
-      setLoading(false)
+    }).catch(console.error)
+
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser ?? null)
     })
     return unsub
   }, [])
 
-  const loginWithGoogle = async () => {
-    await signInWithRedirect(auth, googleProvider)
-  }
-
-  const logout = async () => {
-    await signOut(auth)
-  }
+  const loginWithGoogle = () => signInWithRedirect(auth, googleProvider)
+  const logout = () => signOut(auth)
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading: user === undefined, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   )
