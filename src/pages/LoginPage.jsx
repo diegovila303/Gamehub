@@ -23,7 +23,7 @@ export default function LoginPage() {
           {[
             { icon: '🎮', text: 'Diles a tus amigos qué estás jugando' },
             { icon: '⏰', text: 'Programa cuándo vas a jugar' },
-            { icon: '💬', text: 'Chatea con tus amigos gamers' },
+            { icon: '💬', text: '¡Chatea con tus amigos!' },
           ].map((f, i) => (
             <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
               <span className="text-xl">{f.icon}</span>
